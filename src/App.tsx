@@ -16,6 +16,7 @@ import { ScenarioSelector } from './components/ScenarioSelector';
 import { WorkflowDesigner } from './components/WorkflowDesigner';
 import { ComplianceNotice } from './components/ComplianceNotice';
 import { DeepSeekModal } from './components/DeepSeekModal';
+import { MobileBottomNav } from './components/MobileBottomNav';
 
 import { 
   InvoiceItem, 
@@ -315,7 +316,7 @@ export default function App() {
       />
 
       {/* Main Content Workspace */}
-      <main className="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 space-y-6">
+      <main className="flex-1 max-w-7xl w-full mx-auto p-3.5 sm:p-6 lg:p-8 space-y-4 sm:space-y-6 pb-28 md:pb-8">
         {/* Concept Hero matching top of infographic */}
         <OverviewHero />
 
@@ -417,7 +418,7 @@ export default function App() {
       />
 
       {/* Quiet Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950/80 px-6 py-4 text-center text-xs text-slate-500">
+      <footer className="border-t border-slate-900 bg-slate-950/80 px-6 py-4 text-center text-xs text-slate-500 mb-16 md:mb-0">
         <div className="flex flex-wrap items-center justify-center gap-4">
           <span>AI 会计自动化工作流系统</span>
           <span>·</span>
@@ -426,6 +427,9 @@ export default function App() {
           <span>驱动引擎: DeepSeek API (deepseek-chat / deepseek-reasoner)</span>
         </div>
       </footer>
+
+      {/* Mobile Ergonomic Bottom Tab Navigation */}
+      <MobileBottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
     </div>
   );
 }

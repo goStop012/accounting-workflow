@@ -63,29 +63,29 @@ export const DeepSeekModal: React.FC<DeepSeekModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-700 rounded-xl shadow-2xl overflow-hidden flex flex-col text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/70 backdrop-blur-sm p-0 sm:p-4">
+      <div className="relative w-full max-w-lg bg-slate-900 border border-slate-700 rounded-t-2xl sm:rounded-xl shadow-2xl overflow-hidden flex flex-col text-slate-100 max-h-[90vh]">
         {/* Modal Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/80">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 sm:py-4 border-b border-slate-800 bg-slate-900/90">
           <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+            <div className="p-2 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 shrink-0">
               <Key className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-base font-semibold text-white">DeepSeek AI 引擎配置</h2>
-              <p className="text-xs text-slate-400">配置 DeepSeek API Key 驱动会计全流程自动化</p>
+              <h2 className="text-sm sm:text-base font-semibold text-white">DeepSeek AI 引擎配置</h2>
+              <p className="text-[11px] sm:text-xs text-slate-400">配置 DeepSeek API Key 驱动会计全流程自动化</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <div className="p-6 space-y-5 overflow-y-auto max-h-[75vh]">
+        <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto">
           {/* API Key Input */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
@@ -240,18 +240,18 @@ export const DeepSeekModal: React.FC<DeepSeekModalProps> = ({
         </div>
 
         {/* Modal Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-800 bg-slate-900/90">
+        <div className="flex items-center justify-end gap-3 px-4 sm:px-6 py-3.5 sm:py-4 border-t border-slate-800 bg-slate-900/90">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2 text-xs font-medium text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition-colors"
+            className="flex-1 sm:flex-initial px-4 py-2 min-h-[44px] text-xs font-medium text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition-colors flex items-center justify-center"
           >
             取消
           </button>
           <button
             type="button"
             onClick={handleSave}
-            className="px-4 py-2 text-xs font-semibold text-white bg-cyan-600 hover:bg-cyan-500 rounded-lg shadow-sm shadow-cyan-600/30 transition-colors"
+            className="flex-1 sm:flex-initial px-5 py-2 min-h-[44px] text-xs font-semibold text-white bg-cyan-600 hover:bg-cyan-500 rounded-lg shadow-sm shadow-cyan-600/30 transition-colors flex items-center justify-center"
           >
             保存配置
           </button>

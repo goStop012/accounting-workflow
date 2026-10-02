@@ -83,42 +83,42 @@ export const ReconciliationViewer: React.FC<ReconciliationViewerProps> = ({
 
       {activeTab === 'statement' ? (
         <div className="space-y-4">
-          {/* Status summary banner */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-1">
-              <span className="text-xs text-slate-400">银行对账单余额</span>
-              <div className="text-base font-bold font-mono text-white tabular-nums">
+          {/* Status summary banner (responsive 2-col on mobile, 4-col on desktop) */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3">
+            <div className="p-3 sm:p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-1">
+              <span className="text-[11px] sm:text-xs text-slate-400">银行对账单余额</span>
+              <div className="text-sm sm:text-base font-bold font-mono text-white tabular-nums">
                 ¥{report.bankStatementEndingBalance.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
               </div>
-              <span className="text-[11px] text-slate-500">{report.bankName}</span>
+              <span className="text-[10px] sm:text-[11px] text-slate-500 truncate block">{report.bankName}</span>
             </div>
 
-            <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-1">
-              <span className="text-xs text-slate-400">企业日记账余额</span>
-              <div className="text-base font-bold font-mono text-white tabular-nums">
+            <div className="p-3 sm:p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-1">
+              <span className="text-[11px] sm:text-xs text-slate-400">企业日记账余额</span>
+              <div className="text-sm sm:text-base font-bold font-mono text-white tabular-nums">
                 ¥{report.companyBookEndingBalance.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
               </div>
-              <span className="text-[11px] text-slate-500">所属期: {report.period}</span>
+              <span className="text-[10px] sm:text-[11px] text-slate-500">所属期: {report.period}</span>
             </div>
 
-            <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-1">
-              <span className="text-xs text-slate-400">调节后相符余额</span>
-              <div className="text-base font-bold font-mono text-cyan-300 tabular-nums">
+            <div className="p-3 sm:p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-1">
+              <span className="text-[11px] sm:text-xs text-slate-400">调节后相符余额</span>
+              <div className="text-sm sm:text-base font-bold font-mono text-cyan-300 tabular-nums">
                 ¥{report.adjustedBankBalance.toLocaleString('zh-CN', { minimumFractionDigits: 2 })}
               </div>
-              <div className="flex items-center gap-1 text-[11px] text-emerald-400">
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>两方调整后完全相符</span>
+              <div className="flex items-center gap-1 text-[10px] sm:text-[11px] text-emerald-400">
+                <CheckCircle2 className="w-3 sm:w-3.5 h-3 sm:h-3.5 shrink-0" />
+                <span className="truncate">两方调整后相符</span>
               </div>
             </div>
 
-            <div className="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-1">
-              <span className="text-xs text-slate-400">流水匹配率</span>
-              <div className="text-base font-bold font-mono text-emerald-400 tabular-nums">
+            <div className="p-3 sm:p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-1">
+              <span className="text-[11px] sm:text-xs text-slate-400">流水匹配率</span>
+              <div className="text-sm sm:text-base font-bold font-mono text-emerald-400 tabular-nums">
                 {((report.matchedCount / (report.matchedCount + report.unmatchedCount)) * 100).toFixed(1)}%
               </div>
-              <span className="text-[11px] text-slate-400">
-                匹配 {report.matchedCount} 笔 / 差异 {report.unmatchedCount} 笔
+              <span className="text-[10px] sm:text-[11px] text-slate-400">
+                匹配 {report.matchedCount} / 差异 {report.unmatchedCount} 笔
               </span>
             </div>
           </div>
@@ -242,8 +242,8 @@ export const ReconciliationViewer: React.FC<ReconciliationViewerProps> = ({
         </div>
       ) : (
         /* Transactions List View */
-        <div className="border border-slate-800 rounded-lg overflow-hidden">
-          <table className="w-full text-left text-xs">
+        <div className="border border-slate-800 rounded-lg overflow-x-auto">
+          <table className="w-full text-left text-xs min-w-[480px]">
             <thead className="bg-slate-950 text-slate-400 font-medium border-b border-slate-800">
               <tr>
                 <th className="px-3 py-2.5">交易时间</th>

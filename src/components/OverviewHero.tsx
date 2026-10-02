@@ -28,34 +28,34 @@ export const OverviewHero: React.FC<OverviewHeroProps> = ({ onQuickFilterDemand 
   ];
 
   return (
-    <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl relative overflow-hidden">
+    <div className="bg-gradient-to-r from-slate-900 via-slate-850 to-slate-900 border border-slate-800 rounded-xl sm:rounded-2xl p-4 sm:p-6 shadow-xl relative overflow-hidden">
       {/* Decorative gradient overlay */}
       <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
 
       {/* Main Top Banner */}
-      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 relative z-10">
+      <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 sm:gap-6 relative z-10">
         <div className="space-y-2 max-w-3xl">
           <div className="flex items-center gap-2 text-cyan-400 font-semibold text-xs tracking-wider">
-            <Sparkles className="w-4 h-4" />
+            <Sparkles className="w-4 h-4 shrink-0" />
             <span>AI 驱动会计工作流新范式</span>
             <span>·</span>
             <span className="font-mono">DeepSeek 赋能</span>
           </div>
 
-          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight text-white leading-tight">
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight text-white leading-tight">
             如何建立 <span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-400">AI 工作流</span> 来提升会计工作效率？
           </h1>
 
-          <p className="text-sm text-slate-300 leading-relaxed">
+          <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
             <strong className="text-white font-semibold">AI 不是取代会计</strong>，而是帮你把重复、繁琐、耗时的工作自动化，让你把更多时间用在分析、决策和高价值的工作上。
           </p>
         </div>
 
         {/* Right side badge card */}
-        <div className="p-4 bg-slate-950/70 border border-cyan-800/40 rounded-xl space-y-1.5 shrink-0 self-stretch lg:self-auto flex flex-col justify-center">
+        <div className="p-3.5 sm:p-4 bg-slate-950/70 border border-cyan-800/40 rounded-xl space-y-1 shrink-0 self-stretch lg:self-auto flex flex-col justify-center">
           <div className="text-xs text-slate-400">核心目标</div>
-          <div className="text-base font-bold text-cyan-300 flex items-center gap-1.5">
-            <TrendingUp className="w-4 h-4 text-cyan-400" />
+          <div className="text-sm sm:text-base font-bold text-cyan-300 flex items-center gap-1.5">
+            <TrendingUp className="w-4 h-4 text-cyan-400 shrink-0" />
             用 AI 搭建你的专属工作流
           </div>
           <div className="text-xs text-emerald-400 font-medium">让会计全流程效率翻倍！</div>
@@ -63,18 +63,24 @@ export const OverviewHero: React.FC<OverviewHeroProps> = ({ onQuickFilterDemand 
       </div>
 
       {/* Section 1: 评估与明确需求 */}
-      <div className="mt-5 pt-4 border-t border-slate-800/80">
-        <div className="flex items-center justify-between cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xs font-bold font-mono">
+      <div className="mt-4 sm:mt-5 pt-3 sm:pt-4 border-t border-slate-800/80">
+        <div 
+          className="flex items-center justify-between cursor-pointer min-h-[44px] py-1 select-none" 
+          onClick={() => setIsExpanded(!isExpanded)}
+        >
+          <div className="flex items-center gap-2 pr-2">
+            <div className="w-6 h-6 rounded-full bg-cyan-500/20 text-cyan-400 flex items-center justify-center text-xs font-bold font-mono shrink-0">
               1
             </div>
-            <h2 className="text-sm font-bold text-white">
+            <h2 className="text-xs sm:text-sm font-bold text-white line-clamp-1 sm:line-clamp-none">
               评估与明确需求：先梳理目前的会计工作流程，找出可以用 AI 优化的环节
             </h2>
           </div>
-          <button className="text-xs text-slate-400 hover:text-white flex items-center gap-1">
-            <span>{isExpanded ? '收起指导' : '展开方法论'}</span>
+          <button 
+            type="button"
+            className="text-xs text-slate-400 hover:text-white flex items-center gap-1 shrink-0 min-h-[44px] px-2"
+          >
+            <span>{isExpanded ? '收起' : '展开'}</span>
             {isExpanded ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
           </button>
         </div>

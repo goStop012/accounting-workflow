@@ -30,6 +30,7 @@ export const VoucherDetailViewer: React.FC<VoucherDetailViewerProps> = ({
   isGenerating
 }) => {
   const [selectedVoucherId, setSelectedVoucherId] = useState<string>(vouchers[0]?.id || '');
+  const [mobileViewTab, setMobileViewTab] = useState<'list' | 'detail'>('list');
   const [isEditing, setIsEditing] = useState(false);
   const [editedAuditor, setEditedAuditor] = useState('王强 (主审会计师)');
 
@@ -111,10 +112,32 @@ export const VoucherDetailViewer: React.FC<VoucherDetailViewerProps> = ({
         </div>
       </div>
 
+      {/* Mobile Tab Switcher (Visible on mobile only) */}
+      <div className="flex lg:hidden bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs">
+        <button
+          type="button"
+          onClick={() => setMobileViewTab('list')}
+          className={`flex-1 py-1.5 rounded-md text-center transition-colors min-h-[38px] ${
+            mobileViewTab === 'list' ? 'bg-cyan-600 text-white font-medium shadow-sm' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          凭证列表 ({vouchers.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileViewTab('detail')}
+          className={`flex-1 py-1.5 rounded-md text-center transition-colors min-h-[38px] ${
+            mobileViewTab === 'detail' ? 'bg-cyan-600 text-white font-medium shadow-sm' : 'text-slate-400 hover:text-slate-200'
+          }`}
+        >
+          凭证详情 {currentVoucher ? `(${currentVoucher.voucherWord}-${currentVoucher.voucherNumber})` : ''}
+        </button>
+      </div>
+
       {/* Main Grid: Voucher Tabs / List + Detail Voucher Card */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
         {/* Left: Vouchers Directory (4 cols) */}
-        <div className="lg:col-span-4 space-y-2.5">
+        <div className={`lg:col-span-4 space-y-2.5 ${mobileViewTab === 'detail' ? 'hidden lg:block' : 'block'}`}>
           <div className="text-xs font-medium text-slate-400 flex items-center justify-between">
             <span>已生成凭证列表 ({vouchers.length} 张)</span>
             <span className="text-[11px] text-cyan-400">借贷必须平衡</span>
@@ -126,7 +149,10 @@ export const VoucherDetailViewer: React.FC<VoucherDetailViewerProps> = ({
               return (
                 <div
                   key={v.id}
-                  onClick={() => setSelectedVoucherId(v.id)}
+                  onClick={() => {
+                    setSelectedVoucherId(v.id);
+                    setMobileViewTab('detail');
+                  }}
                   className={`p-3 rounded-lg border transition-all cursor-pointer ${
                     isSelected
                       ? 'bg-slate-800/90 border-cyan-500 shadow-sm shadow-cyan-500/10'
@@ -173,31 +199,42 @@ export const VoucherDetailViewer: React.FC<VoucherDetailViewerProps> = ({
         </div>
 
         {/* Right: Chinese Standard Accounting Voucher (8 cols) */}
-        <div className="lg:col-span-8">
+        <div className={`lg:col-span-8 ${mobileViewTab === 'list' ? 'hidden lg:block' : 'block'}`}>
           {currentVoucher ? (
-            <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-5 space-y-4">
-              {/* Voucher Top Header (中国标准记账凭证抬头发票风) */}
+            <div className="bg-slate-950/90 border border-slate-800 rounded-xl p-4 sm:p-5 space-y-4">
+              {/* Mobile Back Button */}
+              <div className="lg:hidden pb-1">
+                <button
+                  type="button"
+                  onClick={() => setMobileViewTab('list')}
+                  className="text-xs text-cyan-400 hover:text-cyan-300 font-medium flex items-center gap-1 min-h-[36px]"
+                >
+                  ← 返回凭证列表
+                </button>
+              </div>
+
+              {/* Voucher Top Header */}
               <div className="text-center relative pb-3 border-b border-slate-800">
-                <h2 className="text-lg font-bold tracking-wider text-slate-100">
+                <h2 className="text-base sm:text-lg font-bold tracking-wider text-slate-100">
                   记 账 凭 证
                 </h2>
-                <div className="flex flex-wrap items-center justify-between text-xs text-slate-400 mt-2">
-                  <div className="flex items-center gap-4">
-                    <span>核算单位: 北京智算星辰科技有限公司</span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between text-xs text-slate-400 mt-2 gap-1.5">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <span>核算单位: 北京智算星辰</span>
                     <span>日期: {currentVoucher.date}</span>
                   </div>
-                  <div className="flex items-center gap-4 font-mono">
+                  <div className="flex items-center justify-between sm:justify-end gap-3 font-mono">
                     <span className="text-cyan-400 font-semibold">
-                      凭证编号: {currentVoucher.voucherWord} - {currentVoucher.voucherNumber}
+                      编号: {currentVoucher.voucherWord}-{currentVoucher.voucherNumber}
                     </span>
                     <span>附单据: {currentVoucher.attachmentCount} 张</span>
                   </div>
                 </div>
               </div>
 
-              {/* Accounting Entries Table */}
-              <div className="border border-slate-800 rounded-lg overflow-hidden">
-                <table className="w-full text-left text-xs border-collapse">
+              {/* Accounting Entries Table (with horizontal scroll for narrow screens) */}
+              <div className="border border-slate-800 rounded-lg overflow-x-auto">
+                <table className="w-full text-left text-xs border-collapse min-w-[500px]">
                   <thead className="bg-slate-900 text-slate-400 font-medium border-b border-slate-800">
                     <tr>
                       <th className="px-3 py-2 w-1/4">摘要</th>

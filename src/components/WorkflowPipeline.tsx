@@ -78,8 +78,8 @@ export const WorkflowPipeline: React.FC<WorkflowPipelineProps> = ({
         </div>
       </div>
 
-      {/* 5-Step Pipeline Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-5 gap-3.5 relative">
+      {/* 5-Step Pipeline: Mobile Horizontal Snap Scroller / Desktop 5-Col Grid */}
+      <div className="flex md:grid md:grid-cols-5 gap-3.5 overflow-x-auto md:overflow-x-visible pb-3 md:pb-0 scroll-smooth snap-x snap-mandatory -mx-1 px-1">
         {steps.map((step, idx) => {
           const isSelected = step.id === currentStepId;
           const isRunning = step.status === 'running';
@@ -89,7 +89,7 @@ export const WorkflowPipeline: React.FC<WorkflowPipelineProps> = ({
             <div
               key={step.id}
               onClick={() => onSelectStep(step.id)}
-              className={`group relative flex flex-col p-4 rounded-xl border transition-all cursor-pointer ${
+              className={`group relative flex flex-col p-4 rounded-xl border transition-all cursor-pointer min-w-[260px] sm:min-w-[280px] md:min-w-0 snap-start shrink-0 md:shrink ${
                 isSelected
                   ? 'bg-slate-800/90 border-cyan-500 shadow-md shadow-cyan-500/10'
                   : 'bg-slate-950/60 border-slate-800 hover:border-slate-700 hover:bg-slate-800/40'
