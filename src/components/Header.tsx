@@ -5,7 +5,8 @@ import {
   SlidersHorizontal, 
   ShieldCheck, 
   HelpCircle,
-  Sparkles
+  Sparkles,
+  Database
 } from 'lucide-react';
 import { DeepSeekConfig } from '../types/deepseek';
 
@@ -15,6 +16,7 @@ interface HeaderProps {
   deepSeekConfig: DeepSeekConfig;
   onOpenSettings: () => void;
   onOpenHelp: () => void;
+  onOpenStorage: () => void;
   isExecutingAll: boolean;
   onRunFullWorkflow: () => void;
 }
@@ -25,6 +27,7 @@ export const Header: React.FC<HeaderProps> = ({
   deepSeekConfig,
   onOpenSettings,
   onOpenHelp,
+  onOpenStorage,
   isExecutingAll,
   onRunFullWorkflow
 }) => {
@@ -110,6 +113,22 @@ export const Header: React.FC<HeaderProps> = ({
             {hasKey ? 'Key 已配' : '配 Key'}
           </span>
           <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${hasKey ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'}`} />
+        </button>
+
+        {/* Persistent Storage Center Trigger */}
+        <button
+          onClick={onOpenStorage}
+          className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 min-h-[38px] text-xs font-medium rounded-lg border border-slate-700 bg-slate-800/80 hover:bg-slate-700 text-slate-200 hover:text-white transition-all shadow-sm"
+          title="财务数据持久化与账套备份中心"
+        >
+          <Database className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+          <span className="hidden sm:inline whitespace-nowrap">
+            数据备份与持久化
+          </span>
+          <span className="sm:hidden text-[11px] whitespace-nowrap">
+            备份
+          </span>
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" title="本地数据实时已持久化" />
         </button>
 
         {/* 帮助指南 */}

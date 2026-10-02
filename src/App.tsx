@@ -16,6 +16,7 @@ import { ScenarioSelector } from './components/ScenarioSelector';
 import { WorkflowDesigner } from './components/WorkflowDesigner';
 import { ComplianceNotice } from './components/ComplianceNotice';
 import { DeepSeekModal } from './components/DeepSeekModal';
+import { StorageManagerModal } from './components/StorageManagerModal';
 import { MobileBottomNav } from './components/MobileBottomNav';
 
 import { 
@@ -29,8 +30,11 @@ import {
 } from './types/accounting';
 import { DeepSeekConfig } from './types/deepseek';
 import { PipelineStepMeta, PipelineStepId } from './types/workflow';
+import { AccountingStorageSnapshot } from './types/storage';
+import { accountingRepository } from './services/storage/accountingRepository';
 import { 
   getStoredDeepSeekConfig, 
+  fetchServerDeepSeekConfig,
   aiRecognizeInvoice, 
   aiRecognizeInvoiceFromVision,
   aiGenerateVoucher, 
@@ -51,15 +55,48 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'workflow' | 'scenarios' | 'designer' | 'compliance'>('workflow');
   const [deepSeekConfig, setDeepSeekConfig] = useState<DeepSeekConfig>(getStoredDeepSeekConfig());
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isStorageModalOpen, setIsStorageModalOpen] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<string | null>(() => accountingRepository.getLastSavedTime());
   const [currentScenario, setCurrentScenario] = useState<ScenarioType>('invoice_processing');
 
-  // Business Data States
-  const [invoices, setInvoices] = useState<InvoiceItem[]>(initialInvoices);
-  const [vouchers, setVouchers] = useState<AccountingVoucher[]>(initialVouchers);
-  const [bankTransactions, setBankTransactions] = useState<BankTransaction[]>(initialBankTransactions);
-  const [reconciliationReport, setReconciliationReport] = useState<BankReconciliationReport>(initialReconciliationReport);
-  const [financialReports, setFinancialReports] = useState<FinancialReportsData>(initialFinancialReports);
-  const [insights, setInsights] = useState<FinancialInsight[]>(initialInsights);
+  // Business Data States (优先从持久化数据库载入历史账套)
+  const [invoices, setInvoices] = useState<InvoiceItem[]>(() => {
+    const saved = accountingRepository.loadSnapshot();
+    return saved?.invoices?.length ? saved.invoices : initialInvoices;
+  });
+  const [vouchers, setVouchers] = useState<AccountingVoucher[]>(() => {
+    const saved = accountingRepository.loadSnapshot();
+    return saved?.vouchers?.length ? saved.vouchers : initialVouchers;
+  });
+  const [bankTransactions, setBankTransactions] = useState<BankTransaction[]>(() => {
+    const saved = accountingRepository.loadSnapshot();
+    return saved?.bankTransactions?.length ? saved.bankTransactions : initialBankTransactions;
+  });
+  const [reconciliationReport, setReconciliationReport] = useState<BankReconciliationReport>(() => {
+    const saved = accountingRepository.loadSnapshot();
+    return saved?.reconciliationReport ? saved.reconciliationReport : initialReconciliationReport;
+  });
+  const [financialReports, setFinancialReports] = useState<FinancialReportsData>(() => {
+    const saved = accountingRepository.loadSnapshot();
+    return saved?.financialReports ? saved.financialReports : initialFinancialReports;
+  });
+  const [insights, setInsights] = useState<FinancialInsight[]>(() => {
+    const saved = accountingRepository.loadSnapshot();
+    return saved?.insights?.length ? saved.insights : initialInsights;
+  });
+
+  // 页面初次加载时异步与服务端 DeepSeek 持久化状态同步
+  useEffect(() => {
+    fetchServerDeepSeekConfig().then(serverConfig => {
+      if (serverConfig?.apiKey && !deepSeekConfig.apiKey) {
+        setDeepSeekConfig(prev => ({
+          ...prev,
+          apiKey: serverConfig.apiKey || '',
+          model: (serverConfig.model as any) || prev.model
+        }));
+      }
+    });
+  }, []);
 
   // Workflow Pipeline Steps (Section 4 in Infographic)
   const [currentStepId, setCurrentStepId] = useState<PipelineStepId>('step1_collection');
@@ -129,7 +166,52 @@ export default function App() {
     }
   ];
 
-  const [steps, setSteps] = useState<PipelineStepMeta[]>(initialSteps);
+  const [steps, setSteps] = useState<PipelineStepMeta[]>(() => {
+    const saved = accountingRepository.loadSnapshot();
+    return saved?.pipelineSteps?.length ? saved.pipelineSteps : initialSteps;
+  });
+
+  // 核心财务业务数据自动持久化至本地数据库 (带防抖保护)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const saved = accountingRepository.saveSnapshot({
+        invoices,
+        vouchers,
+        bankTransactions,
+        reconciliationReport,
+        financialReports,
+        insights,
+        pipelineSteps: steps,
+      });
+      if (saved) {
+        setLastSavedAt(new Date().toISOString());
+      }
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [invoices, vouchers, bankTransactions, reconciliationReport, financialReports, insights, steps]);
+
+  const handleRestoreSnapshot = (snapshot: AccountingStorageSnapshot) => {
+    if (snapshot.invoices) setInvoices(snapshot.invoices);
+    if (snapshot.vouchers) setVouchers(snapshot.vouchers);
+    if (snapshot.bankTransactions) setBankTransactions(snapshot.bankTransactions);
+    if (snapshot.reconciliationReport) setReconciliationReport(snapshot.reconciliationReport);
+    if (snapshot.financialReports) setFinancialReports(snapshot.financialReports);
+    if (snapshot.insights) setInsights(snapshot.insights);
+    if (snapshot.pipelineSteps) setSteps(snapshot.pipelineSteps);
+    setLastSavedAt(new Date().toISOString());
+  };
+
+  const handleResetToDefault = () => {
+    setInvoices(initialInvoices);
+    setVouchers(initialVouchers);
+    setBankTransactions(initialBankTransactions);
+    setReconciliationReport(initialReconciliationReport);
+    setFinancialReports(initialFinancialReports);
+    setInsights(initialInsights);
+    setSteps(initialSteps);
+    setLastSavedAt(new Date().toISOString());
+  };
 
   // 一键执行完整工作流 (5步流转)
   const handleRunFullWorkflow = async () => {
@@ -351,6 +433,7 @@ export default function App() {
         deepSeekConfig={deepSeekConfig}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenHelp={() => setActiveTab('compliance')}
+        onOpenStorage={() => setIsStorageModalOpen(true)}
         isExecutingAll={isExecutingAll}
         onRunFullWorkflow={handleRunFullWorkflow}
       />
@@ -456,6 +539,24 @@ export default function App() {
         onClose={() => setIsSettingsOpen(false)}
         config={deepSeekConfig}
         onSaveConfig={(updated) => setDeepSeekConfig(updated)}
+      />
+
+      {/* Financial Data Persistence & Backup Center Modal */}
+      <StorageManagerModal
+        isOpen={isStorageModalOpen}
+        onClose={() => setIsStorageModalOpen(false)}
+        currentData={{
+          invoices,
+          vouchers,
+          bankTransactions,
+          reconciliationReport,
+          financialReports,
+          insights,
+          pipelineSteps: steps,
+        }}
+        onRestoreSnapshot={handleRestoreSnapshot}
+        onResetToDefault={handleResetToDefault}
+        lastSavedAt={lastSavedAt}
       />
 
       {/* Quiet Footer */}

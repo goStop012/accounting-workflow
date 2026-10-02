@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, 
   Key, 
@@ -10,10 +10,19 @@ import {
   ExternalLink,
   Zap,
   Lock,
-  Sparkles
+  Sparkles,
+  Database,
+  Eye,
+  EyeOff,
+  Trash2,
+  Save
 } from 'lucide-react';
 import { DeepSeekConfig, DeepSeekModel } from '../types/deepseek';
-import { testDeepSeekKey, saveStoredDeepSeekConfig } from '../services/deepseekClient';
+import { 
+  testDeepSeekKey, 
+  saveStoredDeepSeekConfig, 
+  clearStoredDeepSeekConfig 
+} from '../services/deepseekClient';
 
 interface DeepSeekModalProps {
   isOpen: boolean;
@@ -32,8 +41,22 @@ export const DeepSeekModal: React.FC<DeepSeekModalProps> = ({
   const [model, setModel] = useState<DeepSeekModel>(config.model || 'deepseek-chat');
   const [temperature, setTemperature] = useState(config.temperature ?? 0.3);
   const [maxTokens, setMaxTokens] = useState(config.maxTokens ?? 3000);
+  const [showKey, setShowKey] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ valid: boolean; message: string; latencyMs: number } | null>(null);
+  const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
+
+  // 当弹窗打开或外部配置变更时，同步最新持久化配置
+  useEffect(() => {
+    if (isOpen) {
+      setApiKey(config.apiKey || '');
+      setModel(config.model || 'deepseek-chat');
+      setTemperature(config.temperature ?? 0.3);
+      setMaxTokens(config.maxTokens ?? 3000);
+      setTestResult(null);
+      setSaveSuccessNotice(false);
+    }
+  }, [isOpen, config]);
 
   if (!isOpen) return null;
 
@@ -60,7 +83,21 @@ export const DeepSeekModal: React.FC<DeepSeekModalProps> = ({
     };
     saveStoredDeepSeekConfig(updated);
     onSaveConfig(updated);
-    onClose();
+    setSaveSuccessNotice(true);
+    setTimeout(() => {
+      onClose();
+    }, 600);
+  };
+
+  const handleClearKey = () => {
+    clearStoredDeepSeekConfig();
+    const updated: DeepSeekConfig = {
+      ...config,
+      apiKey: ''
+    };
+    setApiKey('');
+    onSaveConfig(updated);
+    setTestResult(null);
   };
 
   return (
@@ -73,8 +110,14 @@ export const DeepSeekModal: React.FC<DeepSeekModalProps> = ({
               <Key className="w-5 h-5" />
             </div>
             <div>
-              <h2 className="text-sm sm:text-base font-semibold text-white">DeepSeek AI 引擎配置</h2>
-              <p className="text-[11px] sm:text-xs text-slate-400">配置 DeepSeek API Key 驱动会计全流程自动化</p>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm sm:text-base font-semibold text-white">DeepSeek AI 引擎与 Key 配置</h2>
+                <span className="text-[10px] bg-emerald-950/80 text-emerald-300 border border-emerald-800/80 px-1.5 py-0.5 rounded flex items-center gap-1 font-mono">
+                  <Database className="w-3 h-3 text-emerald-400" />
+                  支持持久化
+                </span>
+              </div>
+              <p className="text-[11px] sm:text-xs text-slate-400">配置 DeepSeek API Key，保存后自动永久安全持久化</p>
             </div>
           </div>
           <button
@@ -87,6 +130,13 @@ export const DeepSeekModal: React.FC<DeepSeekModalProps> = ({
 
         {/* Modal Body */}
         <div className="p-4 sm:p-6 space-y-4 sm:space-y-5 overflow-y-auto">
+          {saveSuccessNotice && (
+            <div className="p-3 bg-emerald-950/60 border border-emerald-700/80 rounded-xl text-xs text-emerald-300 flex items-center gap-2 animate-in fade-in">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>DeepSeek API Key 与模型参数已成功持久化至本地与安全会话！</span>
+            </div>
+          )}
+
           {/* API Key Input */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
@@ -94,28 +144,58 @@ export const DeepSeekModal: React.FC<DeepSeekModalProps> = ({
                 <Lock className="w-3.5 h-3.5 text-cyan-400" />
                 DeepSeek API Key
               </label>
-              <a
-                href="https://platform.deepseek.com/api_keys"
-                target="_blank"
-                rel="noreferrer"
-                className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
-              >
-                获取 API Key
-                <ExternalLink className="w-3 h-3" />
-              </a>
+              <div className="flex items-center gap-3">
+                {apiKey && (
+                  <button
+                    type="button"
+                    onClick={handleClearKey}
+                    className="text-xs text-rose-400 hover:text-rose-300 flex items-center gap-1 transition-colors"
+                    title="从本地存储中彻底清除此 API Key"
+                  >
+                    <Trash2 className="w-3 h-3" />
+                    清除已存 Key
+                  </button>
+                )}
+                <a
+                  href="https://platform.deepseek.com/api_keys"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-xs text-cyan-400 hover:text-cyan-300 flex items-center gap-1"
+                >
+                  获取 API Key
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
             </div>
+
             <div className="relative">
               <input
-                type="password"
+                type={showKey ? 'text' : 'password'}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                className="w-full px-3.5 py-2.5 bg-slate-950/70 border border-slate-700 rounded-lg text-sm font-mono text-cyan-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                className="w-full pl-3.5 pr-10 py-2.5 bg-slate-950/70 border border-slate-700 rounded-lg text-sm font-mono text-cyan-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
               />
+              <button
+                type="button"
+                onClick={() => setShowKey(!showKey)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1"
+                title={showKey ? '隐藏 Key' : '显示 Key'}
+              >
+                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
-            <p className="text-xs text-slate-400 leading-relaxed">
-              API Key 仅安全储存于本地浏览器或后端会话，直接与 DeepSeek 官方 API 接口通讯。未填入时系统将自动以预置的高拟真会计智能引擎运行。
-            </p>
+
+            {/* Persistence Guarantee Notice */}
+            <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400 leading-relaxed space-y-1">
+              <div className="flex items-center gap-1.5 text-emerald-300 font-medium">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <span>持久化安全保障：</span>
+              </div>
+              <p>
+                API Key 保存后将<strong className="text-slate-200">自动持久化保存在当前浏览器本地存储与会话代理</strong>中。刷新网页、重新启动或关闭浏览器均无需再次重复输入；若需更换或抹除，可随时点击上方「清除已存 Key」。未填入时系统将自动以预置的高拟真会计智能引擎运行。
+              </p>
+            </div>
           </div>
 
           {/* Model Selection */}

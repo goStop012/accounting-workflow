@@ -1,5 +1,6 @@
 import { DeepSeekConfig, DeepSeekExecutionResult, DeepSeekMessageContent } from '../types/deepseek';
 import { InvoiceItem, AccountingVoucher, BankReconciliationReport, FinancialInsight } from '../types/accounting';
+import { storageAdapter } from './storage/storageAdapter';
 
 const STORAGE_KEY = 'deepseek_accounting_config_v1';
 
@@ -14,21 +15,73 @@ export const DEFAULT_DEEPSEEK_CONFIG: DeepSeekConfig = {
 
 export function getStoredDeepSeekConfig(): DeepSeekConfig {
   try {
+    // 1. 优先读取 storageAdapter 领域前缀隔离存储
+    const fromAdapter = storageAdapter.getItem<DeepSeekConfig>(STORAGE_KEY);
+    if (fromAdapter && fromAdapter.apiKey !== undefined) {
+      return { ...DEFAULT_DEEPSEEK_CONFIG, ...fromAdapter };
+    }
+
+    // 2. 兜底兼容原生 localStorage 历史项
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return { ...DEFAULT_DEEPSEEK_CONFIG, ...JSON.parse(raw) };
+      const parsed = JSON.parse(raw);
+      return { ...DEFAULT_DEEPSEEK_CONFIG, ...parsed };
     }
   } catch (e) {
-    console.warn('Failed to load DeepSeek config from storage:', e);
+    console.warn('读取本地 DeepSeek 持久化配置失败:', e);
   }
   return DEFAULT_DEEPSEEK_CONFIG;
 }
 
+/**
+ * 异步从服务端获取持久化配置（用于同域多设备或新开标签页自动同步）
+ */
+export async function fetchServerDeepSeekConfig(): Promise<Partial<DeepSeekConfig> | null> {
+  try {
+    const res = await fetch('/api/deepseek/config');
+    if (res.ok) {
+      const data = await res.json();
+      return data;
+    }
+  } catch {
+    // ignore
+  }
+  return null;
+}
+
 export function saveStoredDeepSeekConfig(config: DeepSeekConfig): void {
   try {
+    // 1. 持久化至 domain storageAdapter
+    storageAdapter.setItem(STORAGE_KEY, config);
+
+    // 2. 冗余备份至标准 localStorage，确保刷新永久保留
     localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+
+    // 3. 异步持久化同步至应用服务端，保持同源会话一致性
+    fetch('/api/deepseek/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        apiKey: config.apiKey,
+        model: config.model,
+      }),
+    }).catch(() => {});
   } catch (e) {
-    console.warn('Failed to save DeepSeek config:', e);
+    console.warn('保存 DeepSeek 持久化配置失败:', e);
+  }
+}
+
+export function clearStoredDeepSeekConfig(): void {
+  try {
+    storageAdapter.removeItem(STORAGE_KEY);
+    localStorage.removeItem(STORAGE_KEY);
+    fetch('/api/deepseek/config', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ apiKey: '', model: 'deepseek-chat' }),
+    }).catch(() => {});
+  } catch (e) {
+    console.warn('清除 DeepSeek 持久化配置失败:', e);
   }
 }
 

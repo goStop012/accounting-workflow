@@ -15,12 +15,44 @@ async function startServer() {
 
   app.use(express.json({ limit: '10mb' }));
 
+  // Server-side persisted DeepSeek configuration
+  let serverPersistedConfig: { apiKey?: string; model?: string } = {
+    apiKey: process.env.DEEPSEEK_API_KEY || '',
+    model: 'deepseek-chat'
+  };
+
+  // GET /api/deepseek/config - Retrieve server persisted DeepSeek configuration
+  app.get('/api/deepseek/config', (_req, res) => {
+    const key = serverPersistedConfig.apiKey || process.env.DEEPSEEK_API_KEY || '';
+    res.json({
+      hasKey: Boolean(key),
+      apiKey: key,
+      model: serverPersistedConfig.model || 'deepseek-chat',
+    });
+  });
+
+  // POST /api/deepseek/config - Persist DeepSeek API Key on server
+  app.post('/api/deepseek/config', (req, res) => {
+    const { apiKey, model } = req.body || {};
+    if (typeof apiKey === 'string') {
+      serverPersistedConfig.apiKey = apiKey.trim();
+    }
+    if (typeof model === 'string') {
+      serverPersistedConfig.model = model;
+    }
+    res.json({
+      success: true,
+      message: 'DeepSeek API Key 已持久化至服务端',
+      hasKey: Boolean(serverPersistedConfig.apiKey),
+    });
+  });
+
   // DeepSeek API proxy route
   app.post('/api/deepseek/chat', async (req, res) => {
     try {
       const authHeader = req.headers.authorization;
       const userApiKey = authHeader ? authHeader.replace(/^Bearer\s+/i, '').trim() : '';
-      const apiKey = userApiKey || process.env.DEEPSEEK_API_KEY;
+      const apiKey = userApiKey || serverPersistedConfig.apiKey || process.env.DEEPSEEK_API_KEY;
 
       if (!apiKey) {
         return res.status(401).json({
@@ -90,7 +122,7 @@ async function startServer() {
     try {
       const authHeader = req.headers.authorization;
       const userApiKey = authHeader ? authHeader.replace(/^Bearer\s+/i, '').trim() : '';
-      const apiKey = userApiKey || process.env.DEEPSEEK_API_KEY;
+      const apiKey = userApiKey || serverPersistedConfig.apiKey || process.env.DEEPSEEK_API_KEY;
 
       if (!apiKey) {
         return res.status(400).json({ valid: false, error: '未提供 API Key' });
