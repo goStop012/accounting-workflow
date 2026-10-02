@@ -15,7 +15,9 @@ import {
   Eye,
   EyeOff,
   Trash2,
-  Save
+  Save,
+  Clipboard,
+  ClipboardCheck
 } from 'lucide-react';
 import { DeepSeekConfig, DeepSeekModel } from '../types/deepseek';
 import { 
@@ -41,10 +43,11 @@ export const DeepSeekModal: React.FC<DeepSeekModalProps> = ({
   const [model, setModel] = useState<DeepSeekModel>(config.model || 'deepseek-chat');
   const [temperature, setTemperature] = useState(config.temperature ?? 0.3);
   const [maxTokens, setMaxTokens] = useState(config.maxTokens ?? 3000);
-  const [showKey, setShowKey] = useState(false);
+  const [isMasked, setIsMasked] = useState(false);
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<{ valid: boolean; message: string; latencyMs: number } | null>(null);
   const [saveSuccessNotice, setSaveSuccessNotice] = useState(false);
+  const [pasteNotice, setPasteNotice] = useState<string | null>(null);
 
   // 当弹窗打开或外部配置变更时，同步最新持久化配置
   useEffect(() => {
@@ -55,10 +58,31 @@ export const DeepSeekModal: React.FC<DeepSeekModalProps> = ({
       setMaxTokens(config.maxTokens ?? 3000);
       setTestResult(null);
       setSaveSuccessNotice(false);
+      setPasteNotice(null);
     }
   }, [isOpen, config]);
 
   if (!isOpen) return null;
+
+  const handlePasteFromClipboard = async () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.readText) {
+        const text = await navigator.clipboard.readText();
+        if (text && text.trim()) {
+          setApiKey(text.trim());
+          setPasteNotice('已成功从系统剪贴板粘贴 API Key！');
+          setTimeout(() => setPasteNotice(null), 2500);
+          return;
+        }
+      }
+    } catch (err) {
+      console.warn('Clipboard read failed:', err);
+    }
+    
+    // 移动端安全限制未能直接读取时的交互提示
+    setPasteNotice('已激活常规键盘，您可直接点击输入框并长按选择“粘贴”');
+    setTimeout(() => setPasteNotice(null), 3500);
+  };
 
   const handleTest = async () => {
     setIsTesting(true);
@@ -98,6 +122,8 @@ export const DeepSeekModal: React.FC<DeepSeekModalProps> = ({
     setApiKey('');
     onSaveConfig(updated);
     setTestResult(null);
+    setPasteNotice('已清除本地与服务端保存的 API Key');
+    setTimeout(() => setPasteNotice(null), 2500);
   };
 
   return (
@@ -168,32 +194,71 @@ export const DeepSeekModal: React.FC<DeepSeekModalProps> = ({
               </div>
             </div>
 
-            <div className="relative">
+            {/* Mobile Paste Notification Banner */}
+            {pasteNotice && (
+              <div className="p-2.5 bg-cyan-950/70 border border-cyan-700/80 rounded-lg text-xs text-cyan-200 flex items-center justify-between gap-2 animate-in fade-in">
+                <div className="flex items-center gap-1.5">
+                  <ClipboardCheck className="w-4 h-4 text-cyan-400 shrink-0" />
+                  <span>{pasteNotice}</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setPasteNotice(null)}
+                  className="text-slate-400 hover:text-white p-0.5"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+
+            <div className="relative flex items-center">
               <input
-                type={showKey ? 'text' : 'password'}
+                type="text"
+                inputMode="text"
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck={false}
                 value={apiKey}
                 onChange={(e) => setApiKey(e.target.value)}
                 placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                className="w-full pl-3.5 pr-10 py-2.5 bg-slate-950/70 border border-slate-700 rounded-lg text-sm font-mono text-cyan-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500"
+                style={{
+                  WebkitTextSecurity: isMasked ? 'disc' : 'none'
+                } as React.CSSProperties}
+                className="w-full pl-3.5 pr-24 py-2.5 bg-slate-950/70 border border-slate-700 rounded-lg text-sm font-mono text-cyan-200 placeholder-slate-500 focus:outline-none focus:border-cyan-500 focus:ring-1 focus:ring-cyan-500 select-text"
               />
-              <button
-                type="button"
-                onClick={() => setShowKey(!showKey)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 p-1"
-                title={showKey ? '隐藏 Key' : '显示 Key'}
-              >
-                {showKey ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              </button>
+              <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                {/* One-click Paste from Clipboard button */}
+                <button
+                  type="button"
+                  onClick={handlePasteFromClipboard}
+                  className="px-2 py-1 text-xs font-medium text-cyan-300 hover:text-cyan-200 bg-cyan-950/80 hover:bg-cyan-900 border border-cyan-800 rounded transition-colors flex items-center gap-1 shadow-sm active:scale-95"
+                  title="从手机/电脑剪贴板一键粘贴"
+                >
+                  <Clipboard className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="text-[11px]">粘贴</span>
+                </button>
+
+                {/* Mask / Unmask Toggle */}
+                <button
+                  type="button"
+                  onClick={() => setIsMasked(!isMasked)}
+                  className="p-1.5 text-slate-400 hover:text-slate-200 rounded transition-colors"
+                  title={isMasked ? '显示明文' : '遮罩保密'}
+                >
+                  {isMasked ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                </button>
+              </div>
             </div>
 
-            {/* Persistence Guarantee Notice */}
+            {/* Persistence Guarantee & Mobile Optimization Notice */}
             <div className="p-2.5 rounded-lg bg-slate-950/60 border border-slate-800 text-[11px] text-slate-400 leading-relaxed space-y-1">
               <div className="flex items-center gap-1.5 text-emerald-300 font-medium">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>持久化安全保障：</span>
+                <span>移动端已全面解除安全键盘限制与粘贴封锁：</span>
               </div>
               <p>
-                API Key 保存后将<strong className="text-slate-200">自动持久化保存在当前浏览器本地存储与会话代理</strong>中。刷新网页、重新启动或关闭浏览器均无需再次重复输入；若需更换或抹除，可随时点击上方「清除已存 Key」。未填入时系统将自动以预置的高拟真会计智能引擎运行。
+                已规避手机系统将输入框误判为密码框而强制调起的限制粘贴安全键盘；您可直接点击右侧<strong className="text-cyan-300">「粘贴」</strong>按钮或在输入框中长按调出系统菜单快速粘贴。保存后将自动持久化至本地数据库，无需再次重复输入。
               </p>
             </div>
           </div>
