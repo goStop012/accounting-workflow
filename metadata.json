@@ -1,0 +1,6 @@
+{
+  "name": "AI 会计自动化工作流平台 (DeepSeek)",
+  "description": "基于 DeepSeek AI 的会计全流程自动化工作流系统，涵盖发票识别、自动生成会计凭证、银行流水对账、财务报表生成与智能经营分析。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
