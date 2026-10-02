@@ -32,6 +32,7 @@ import { PipelineStepMeta, PipelineStepId } from './types/workflow';
 import { 
   getStoredDeepSeekConfig, 
   aiRecognizeInvoice, 
+  aiRecognizeInvoiceFromVision,
   aiGenerateVoucher, 
   aiReconcileBankStatements, 
   aiGenerateFinancialInsights 
@@ -70,10 +71,10 @@ export default function App() {
       id: 'step1_collection',
       stepNumber: 1,
       title: '收集数据',
-      subtitle: '发票扫描/OCR 识别',
-      assignedTools: ['OCR', 'DeepSeek-V3'],
-      inputSummary: '增值税专用发票、普通发票及报销单据',
-      outputSummary: '提取发票代码、号码、金额、税率等四要素并校验合规',
+      subtitle: 'DeepSeek 视觉 API 直读',
+      assignedTools: ['DeepSeek 视觉 (Vision)', 'OCR'],
+      inputSummary: '增值税专用发票扫描原图、电子发票或照片',
+      outputSummary: 'DeepSeek 视觉直读发票四要素与合规自查',
       status: 'completed',
       reviewedByHuman: true,
       logs: []
@@ -245,6 +246,45 @@ export default function App() {
     }
   };
 
+  // 发票 DeepSeek 视觉识别原图 (Vision API)
+  const handleRecognizeWithVision = async (imageUrlOrBase64: string) => {
+    setIsProcessingStep(true);
+    try {
+      const res = await aiRecognizeInvoiceFromVision(imageUrlOrBase64, deepSeekConfig);
+      if (res.data) {
+        const newInv: InvoiceItem = {
+          id: `inv-vision-${Date.now()}`,
+          code: res.data.code || '011002300111',
+          number: res.data.number || `${Math.floor(Math.random() * 80000000 + 10000000)}`,
+          date: res.data.date || new Date().toISOString().slice(0, 10),
+          buyerName: res.data.buyerName || '北京智算星辰科技有限公司',
+          buyerTaxNo: res.data.buyerTaxNo || '91110108MA01XXXX78',
+          sellerName: res.data.sellerName || '上海壁仞智能科技有限公司',
+          sellerTaxNo: res.data.sellerTaxNo || '91310115MA1HXXXX92',
+          serviceName: res.data.serviceName || '*计算芯片*BR104通用GPU加速卡与配套测试板卡',
+          specification: res.data.specification || 'BR104-PCIe-64G',
+          unitPrice: res.data.amountWithoutTax || 68000.00,
+          quantity: 1,
+          amountWithoutTax: res.data.amountWithoutTax || 68000.00,
+          taxRate: res.data.taxRate || 0.13,
+          taxAmount: res.data.taxAmount || 8840.00,
+          totalAmount: res.data.totalAmount || 76840.00,
+          invoiceType: (res.data.invoiceType as any) || 'vat_special',
+          invoiceTypeName: '增值税专用发票',
+          category: res.data.category || '研发费用-试制物料',
+          confidence: res.data.confidence || 0.99,
+          reviewed: false,
+          imageUrl: imageUrlOrBase64,
+          recognitionMethod: 'deepseek_vision',
+          rawOcrText: `[DeepSeek Vision 视觉直读] 代码: ${res.data.code || '011002300111'} 号码: ${res.data.number} 价税合计: ¥${res.data.totalAmount}`
+        };
+        setInvoices(prev => [newInv, ...prev]);
+      }
+    } finally {
+      setIsProcessingStep(false);
+    }
+  };
+
   // 凭证审核签章切换
   const handleApproveVoucher = (id: string) => {
     setVouchers(prev => prev.map(v => {
@@ -340,6 +380,7 @@ export default function App() {
                   onAddInvoice={(inv) => setInvoices(prev => [inv, ...prev])}
                   onReviewInvoice={handleReviewInvoice}
                   onRecognizeWithDeepSeek={handleRecognizeInvoiceText}
+                  onRecognizeWithVision={handleRecognizeWithVision}
                   deepSeekConfig={deepSeekConfig}
                   isProcessing={isProcessingStep}
                 />

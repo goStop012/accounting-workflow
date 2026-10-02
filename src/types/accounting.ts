@@ -27,6 +27,8 @@ export interface InvoiceItem {
   invoiceTypeName: string;
   category: string; // 费用归属: 原材料 / 销售费用 / 管理费用 / 研发费用 / 资产采购
   fileUrl?: string;
+  imageUrl?: string; // 发票/单据原图 (Base64 或 预览链接)
+  recognitionMethod?: 'deepseek_vision' | 'ocr_text'; // 识别途径: DeepSeek 视觉大模型直读 / OCR 文本解析
   rawOcrText?: string;
   confidence: number; // 识别置信度 (0-1)
   reviewed: boolean; // 是否已人工复核

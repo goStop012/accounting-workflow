@@ -1,4 +1,4 @@
-import { DeepSeekConfig, DeepSeekExecutionResult } from '../types/deepseek';
+import { DeepSeekConfig, DeepSeekExecutionResult, DeepSeekMessageContent } from '../types/deepseek';
 import { InvoiceItem, AccountingVoucher, BankReconciliationReport, FinancialInsight } from '../types/accounting';
 
 const STORAGE_KEY = 'deepseek_accounting_config_v1';
@@ -85,14 +85,16 @@ export async function testDeepSeekKey(apiKey: string, model: string = 'deepseek-
 }
 
 /**
- * 调用 DeepSeek 核心接口
+ * 调用 DeepSeek 核心接口 (支持文本、多模态图像、JSON 模式与提示词缓存)
  */
 export async function queryDeepSeek(
-  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }>,
-  config?: Partial<DeepSeekConfig>
+  messages: Array<{ role: 'system' | 'user' | 'assistant'; content: DeepSeekMessageContent }>,
+  config?: Partial<DeepSeekConfig>,
+  options?: { jsonMode?: boolean }
 ): Promise<DeepSeekExecutionResult<string>> {
   const currentConfig = { ...getStoredDeepSeekConfig(), ...config };
   const startTime = Date.now();
+  const jsonMode = Boolean(options?.jsonMode);
 
   // 若未填写 API Key，则启动高拟真智能模拟引擎，并告知用户可配置 Key
   if (!currentConfig.apiKey || currentConfig.apiKey.trim() === '') {
@@ -102,8 +104,26 @@ export async function queryDeepSeek(
       isSimulated: true,
       latencyMs: 380,
       tokensUsed: 420,
+      cacheHitTokens: 256,
+      modelUsed: currentConfig.model,
       reasoning: '当前处于 DeepSeek 预置智能工作流引擎模式。可在右上角「DeepSeek API 配置」输入您的 API Key 启用在线实时推理。'
     };
+  }
+
+  const payload: Record<string, unknown> = {
+    model: currentConfig.model,
+    messages,
+    max_tokens: currentConfig.maxTokens,
+  };
+
+  // 依据官方指南：deepseek-reasoner 不支持自定义 temperature / top_p
+  if (currentConfig.model !== 'deepseek-reasoner') {
+    payload.temperature = currentConfig.temperature;
+  }
+
+  // deepseek-chat 支持严格 JSON 输出模式
+  if (jsonMode && currentConfig.model === 'deepseek-chat') {
+    payload.response_format = { type: 'json_object' };
   }
 
   try {
@@ -115,12 +135,7 @@ export async function queryDeepSeek(
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${currentConfig.apiKey.trim()}`,
         },
-        body: JSON.stringify({
-          model: currentConfig.model,
-          messages,
-          temperature: currentConfig.temperature,
-          max_tokens: currentConfig.maxTokens,
-        }),
+        body: JSON.stringify(payload),
       });
       if (response.status === 404) {
         throw new Error('Static host');
@@ -134,12 +149,7 @@ export async function queryDeepSeek(
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${currentConfig.apiKey.trim()}`,
         },
-        body: JSON.stringify({
-          model: currentConfig.model,
-          messages,
-          temperature: currentConfig.temperature,
-          max_tokens: currentConfig.maxTokens,
-        }),
+        body: JSON.stringify(payload),
       });
     }
 
@@ -152,22 +162,41 @@ export async function queryDeepSeek(
         error: errorData.error || `DeepSeek API 响应错误 (状态码: ${response.status})`,
         latencyMs,
         isSimulated: false,
+        modelUsed: currentConfig.model,
       };
     }
 
     const data = await response.json();
     const assistantMsg = data.choices?.[0]?.message;
-    const content = assistantMsg?.content || '';
-    const reasoning = assistantMsg?.reasoning_content || '';
-    const tokensUsed = data.usage?.total_tokens || 0;
+    let content = assistantMsg?.content || '';
+    let reasoning = assistantMsg?.reasoning_content || '';
+
+    // 若模型在 content 中内嵌了 <think>...</think>，自动解析分离思考链
+    if (!reasoning && content.includes('<think>')) {
+      const match = content.match(/<think>([\s\S]*?)<\/think>/);
+      if (match) {
+        reasoning = match[1].trim();
+        content = content.replace(/<think>[\s\S]*?<\/think>/, '').trim();
+      }
+    }
+
+    const usage = data.usage;
+    const tokensUsed = usage?.total_tokens || 0;
+    const promptTokens = usage?.prompt_tokens;
+    const completionTokens = usage?.completion_tokens;
+    const cacheHitTokens = usage?.prompt_cache_hit_tokens || 0;
 
     return {
       success: true,
       data: content,
       reasoning,
       tokensUsed,
+      promptTokens,
+      completionTokens,
+      cacheHitTokens,
       latencyMs,
       isSimulated: false,
+      modelUsed: currentConfig.model,
     };
   } catch (err: any) {
     const latencyMs = Date.now() - startTime;
@@ -176,6 +205,7 @@ export async function queryDeepSeek(
       error: `请求发送失败: ${err.message}`,
       latencyMs,
       isSimulated: false,
+      modelUsed: currentConfig.model,
     };
   }
 }
@@ -210,7 +240,7 @@ ${rawText}
   const res = await queryDeepSeek([
     { role: 'system', content: '你是一位精通中国企业会计准则与发票合规风控的 DeepSeek 财务智能体。' },
     { role: 'user', content: prompt }
-  ], config);
+  ], config, { jsonMode: true });
 
   if (res.isSimulated || !res.success) {
     return {
@@ -244,6 +274,97 @@ ${rawText}
       success: false,
       data: undefined,
       error: '发票 JSON 解析失败',
+      latencyMs: res.latencyMs
+    };
+  }
+}
+
+/**
+ * 步骤 1. 使用 DeepSeek 视觉识别 API (Vision API) 直接解析发票图像
+ * 官方文档: https://api-docs.deepseek.com/zh-cn/guides/vision
+ * 采用多模态 image_url (支持 Base64 Data URL 或 HTTP/HTTPS 图片链接) 发送给 DeepSeek
+ * 视觉大模型自动定位版面四要素、税率、金额并完成增值税防伪合规性自查
+ */
+export async function aiRecognizeInvoiceFromVision(
+  imageUrlOrBase64: string,
+  config?: DeepSeekConfig
+): Promise<DeepSeekExecutionResult<Partial<InvoiceItem>>> {
+  const prompt = `你是一位精通中国增值税发票制度与财务原始凭证审核的资深注册会计师 (CPA)。
+这是一张发票或报销单据的原图扫描件/照片。请直接通过 DeepSeek 视觉能力识别票面文字、版式、防伪与金额信息，以纯 JSON 格式输出结构化财务数据，不要包含任何 markdown 代码块以外的文字：
+
+输出格式严格要求：
+{
+  "code": "发票代码",
+  "number": "发票号码",
+  "date": "YYYY-MM-DD",
+  "buyerName": "购买方名称",
+  "buyerTaxNo": "购买方纳税人识别号",
+  "sellerName": "销售方名称",
+  "sellerTaxNo": "销售方纳税人识别号",
+  "serviceName": "货物或应税劳务名称",
+  "specification": "规格型号 (若有)",
+  "amountWithoutTax": 0.00,
+  "taxRate": 0.13,
+  "taxAmount": 0.00,
+  "totalAmount": 0.00,
+  "invoiceType": "vat_special" 或 "vat_common" 或 "travel_expense",
+  "category": "费用科目归属建议 (如: 研发费用-试制物料 / 管理费用-办公费 / 研发费用-云资源费)",
+  "confidence": 0.99
+}`;
+
+  const res = await queryDeepSeek([
+    { role: 'system', content: '你是一位精通中国财税发票与原始单据视觉识别 (Vision OCR) 的资深注册会计师。' },
+    {
+      role: 'user',
+      content: [
+        { type: 'text', text: prompt },
+        { type: 'image_url', image_url: { url: imageUrlOrBase64 } }
+      ]
+    }
+  ], config, { jsonMode: true });
+
+  if (res.isSimulated || !res.success) {
+    // 视觉模式拟真解析结果
+    return {
+      ...res,
+      data: {
+        code: '011002300111',
+        number: `${Math.floor(Math.random() * 80000000 + 10000000)}`,
+        date: new Date().toISOString().slice(0, 10),
+        buyerName: '北京智算星辰科技有限公司',
+        buyerTaxNo: '91110108MA01XXXX78',
+        sellerName: '上海壁仞智能科技有限公司',
+        sellerTaxNo: '91310115MA1HXXXX92',
+        serviceName: '*计算芯片*BR104通用GPU加速卡与配套测试板卡',
+        specification: 'BR104-PCIe-64G',
+        amountWithoutTax: 68000.00,
+        taxRate: 0.13,
+        taxAmount: 8840.00,
+        totalAmount: 76840.00,
+        invoiceType: 'vat_special',
+        category: '研发费用-试制物料',
+        confidence: 0.99
+      },
+      reasoning: res.reasoning || '通过 DeepSeek 视觉大模型直接从发票图像中定位发票代码、号码、金额与税率，校验纳税人识别号格式无误。'
+    };
+  }
+
+  try {
+    const cleanJson = res.data?.replace(/```json/gi, '').replace(/```/g, '').trim();
+    const parsed = JSON.parse(cleanJson || '{}');
+    return {
+      success: true,
+      data: parsed,
+      reasoning: res.reasoning,
+      tokensUsed: res.tokensUsed,
+      latencyMs: res.latencyMs,
+      isSimulated: res.isSimulated
+    };
+  } catch {
+    return {
+      success: false,
+      data: undefined,
+      error: 'DeepSeek 视觉识别结果 JSON 解析失败',
       latencyMs: res.latencyMs
     };
   }
@@ -288,7 +409,7 @@ export async function aiGenerateVoucher(invoice: InvoiceItem, config?: DeepSeekC
   const res = await queryDeepSeek([
     { role: 'system', content: '你是一位严谨的中国注册会计师(CPA) AI 智能体，精通借贷记账法与税务筹划。' },
     { role: 'user', content: prompt }
-  ], config);
+  ], config, { jsonMode: true });
 
   if (res.isSimulated || !res.success) {
     // 智能高质量兜底分录

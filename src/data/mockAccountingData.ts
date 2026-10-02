@@ -6,6 +6,7 @@ import {
   FinancialReportsData, 
   FinancialInsight 
 } from '../types/accounting';
+import { sampleInvoiceImages } from './sampleInvoiceImages';
 
 // 场景 1 初始发票数据集 (支持直接体验或上传新票据)
 export const initialInvoices: InvoiceItem[] = [
@@ -31,6 +32,8 @@ export const initialInvoices: InvoiceItem[] = [
     category: '研发费用-云资源费',
     confidence: 0.99,
     reviewed: false,
+    imageUrl: sampleInvoiceImages.cloudServerInvoice,
+    recognitionMethod: 'deepseek_vision',
     rawOcrText: '发票代码: 1100234130 发票号码: 88392014 开票日期: 2026年09月15日 购买方: 北京智算星辰科技有限公司 销售方: 阿里云计算有限公司 服务名称: *信息技术服务*云服务器 金额: 12000.00 税率: 6% 税额: 720.00 价税合计: 12720.00'
   },
   {
@@ -55,6 +58,8 @@ export const initialInvoices: InvoiceItem[] = [
     category: '原材料-传感模组',
     confidence: 0.98,
     reviewed: false,
+    imageUrl: sampleInvoiceImages.hardwareChipInvoice,
+    recognitionMethod: 'deepseek_vision',
     rawOcrText: '发票代码: 3100223140 发票号码: 04918231 开票日期: 2026年09月18日 货物名称: *电子元器件*工业级传感核心模组芯片 单价: 350 数量: 100 金额: 35000.00 税率: 13% 税额: 4550.00 价税合计: 39550.00'
   },
   {

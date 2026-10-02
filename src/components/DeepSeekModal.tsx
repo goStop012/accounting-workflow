@@ -9,7 +9,8 @@ import {
   Cpu, 
   ExternalLink,
   Zap,
-  Lock
+  Lock,
+  Sparkles
 } from 'lucide-react';
 import { DeepSeekConfig, DeepSeekModel } from '../types/deepseek';
 import { testDeepSeekKey, saveStoredDeepSeekConfig } from '../services/deepseekClient';
@@ -161,22 +162,29 @@ export const DeepSeekModal: React.FC<DeepSeekModalProps> = ({
           </div>
 
           {/* Advanced Hyperparameters */}
-          <div className="grid grid-cols-2 gap-4 pt-1">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
             <div className="space-y-1">
               <div className="flex justify-between text-xs">
                 <span className="text-slate-300">严谨度 (Temperature)</span>
-                <span className="font-mono text-cyan-400">{temperature}</span>
+                <span className="font-mono text-cyan-400">
+                  {model === 'deepseek-reasoner' ? '模型默认 (自动推演)' : temperature}
+                </span>
               </div>
               <input
                 type="range"
                 min="0"
                 max="1"
                 step="0.05"
+                disabled={model === 'deepseek-reasoner'}
                 value={temperature}
                 onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                className="w-full accent-cyan-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                className="w-full accent-cyan-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
               />
-              <span className="text-[11px] text-slate-400">数值越低越严谨，符合会计准则</span>
+              <span className="text-[11px] text-slate-400">
+                {model === 'deepseek-reasoner' 
+                  ? '官方规范: R1 思考模式由模型自主控制思维链温度' 
+                  : '财务结构化建议 0.0 - 0.3，输出最精确稳定'}
+              </span>
             </div>
 
             <div className="space-y-1">
@@ -193,7 +201,44 @@ export const DeepSeekModal: React.FC<DeepSeekModalProps> = ({
                 onChange={(e) => setMaxTokens(parseInt(e.target.value, 10))}
                 className="w-full px-2.5 py-1.5 bg-slate-950/60 border border-slate-700 rounded-md text-xs font-mono text-slate-200"
               />
-              <span className="text-[11px] text-slate-400">单次生成的最大上下文长度</span>
+              <span className="text-[11px] text-slate-400">单次生成的最大上下文长度 (支持8K)</span>
+            </div>
+          </div>
+
+          {/* Latest API Feature Badges */}
+          <div className="p-3 bg-slate-950/80 rounded-xl border border-slate-800/80 space-y-1.5 text-[11px]">
+            <div className="font-semibold text-slate-300 flex items-center justify-between">
+              <span className="flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                已全面对齐最新 DeepSeek API 核心特性
+              </span>
+              <a
+                href="https://api-docs.deepseek.com"
+                target="_blank"
+                rel="noreferrer"
+                className="text-cyan-400 hover:underline flex items-center gap-0.5"
+              >
+                官方文档
+                <ExternalLink className="w-3 h-3" />
+              </a>
+            </div>
+            <div className="grid grid-cols-2 gap-2 text-slate-400 pt-1">
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>Vision 视觉多模态直传发票原图</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                <span>JSON Object 严格结构化输出</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />
+                <span>R1 深度思考推演链 (CoT)</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-1.5 h-1.5 rounded-full bg-blue-400" />
+                <span>Context Caching 缓存命中降费 90%</span>
+              </div>
             </div>
           </div>
 

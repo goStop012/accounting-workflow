@@ -38,11 +38,16 @@ async function startServer() {
       const requestPayload: Record<string, unknown> = {
         model,
         messages,
-        temperature,
         max_tokens,
       };
 
-      if (response_format) {
+      // 遵循 DeepSeek 官方指南：deepseek-reasoner (R1) 不支持传入自定义 temperature / top_p
+      if (model !== 'deepseek-reasoner' && typeof temperature === 'number') {
+        requestPayload.temperature = temperature;
+      }
+
+      // 仅当 deepseek-chat 且显式要求 JSON 模式时传入 response_format
+      if (response_format && model === 'deepseek-chat') {
         requestPayload.response_format = response_format;
       }
 

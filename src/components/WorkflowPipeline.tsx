@@ -132,7 +132,10 @@ export const WorkflowPipeline: React.FC<WorkflowPipelineProps> = ({
               </div>
 
               {/* Tasks description */}
-              <p className="text-[11px] text-slate-400 leading-relaxed mb-3 line-clamp-2">
+              <p 
+                className="text-[11px] text-slate-400 leading-tight mb-2 line-clamp-1 truncate"
+                title={step.outputSummary}
+              >
                 {step.outputSummary}
               </p>
 

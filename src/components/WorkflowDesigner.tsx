@@ -79,9 +79,9 @@ export const WorkflowDesigner: React.FC<WorkflowDesignerProps> = ({
             <label className="text-xs text-slate-300 font-medium">触发方式选择：</label>
             <div className="space-y-1.5">
               {[
-                { id: 'invoice_upload', title: '发票与报销单拖拽上传', desc: '支持 PDF, OFD, JPG, PNG' },
-                { id: 'bank_sync', title: '银行银企直联/网银流水导入', desc: '支持 Excel, CSV, XML 报文' },
-                { id: 'scheduled', title: '每月末定时自动结账任务', desc: '每月最后一日 23:00 自动触发' },
+                { id: 'invoice_upload', title: '发票原图拍照/扫描件拖拽上传 (Vision API)', desc: '支持 PNG, JPG, WebP 原图直传 DeepSeek 视觉模型' },
+                { id: 'bank_sync', title: '银行银企直联/网银流水导入', desc: '支持 Excel, CSV, XML 银行对账明细' },
+                { id: 'scheduled', title: '每月末定时自动结账任务', desc: '每月最后一日 23:00 自动触发试算平衡' },
               ].map((item) => (
                 <label
                   key={item.id}
@@ -121,14 +121,19 @@ export const WorkflowDesigner: React.FC<WorkflowDesignerProps> = ({
           </div>
 
           <p className="text-xs text-slate-400 leading-relaxed">
-            DeepSeek 驱动会计准则推导、借贷科目匹配与税率验算。
+            基于 DeepSeek 最新 API 规范：支持 Vision 视觉直读、JSON Object 严格输出与 Context Caching 提示词缓存降本。
           </p>
 
           <div className="space-y-3 text-xs">
             <div className="p-2.5 bg-slate-950/70 border border-slate-800 rounded-lg flex items-center justify-between">
               <div>
                 <div className="font-semibold text-slate-200">当前 AI 核心引擎</div>
-                <div className="text-[11px] font-mono text-cyan-400">DeepSeek ({deepSeekConfig.model})</div>
+                <div className="text-[11px] font-mono text-cyan-400 flex items-center gap-1 mt-0.5">
+                  <span>{deepSeekConfig.model}</span>
+                  <span className="text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 px-1 rounded text-[10px]">
+                    缓存优惠 90%
+                  </span>
+                </div>
               </div>
               <button
                 onClick={onOpenSettings}

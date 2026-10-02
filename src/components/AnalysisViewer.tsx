@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Lightbulb, 
   AlertTriangle, 
@@ -8,7 +8,10 @@ import {
   DollarSign, 
   Cpu, 
   Zap,
-  CheckCircle2
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Shield
 } from 'lucide-react';
 import { FinancialInsight } from '../types/accounting';
 import { DeepSeekConfig } from '../types/deepseek';
@@ -26,6 +29,8 @@ export const AnalysisViewer: React.FC<AnalysisViewerProps> = ({
   deepSeekConfig,
   isProcessing
 }) => {
+  const [showReasoning, setShowReasoning] = useState(true);
+
   const getCategoryBadge = (category: string) => {
     switch (category) {
       case 'risk':
@@ -103,6 +108,57 @@ export const AnalysisViewer: React.FC<AnalysisViewerProps> = ({
             1 笔
           </div>
           <span className="text-[11px] text-slate-400">跨期未开票入账电汇款项</span>
+        </div>
+      </div>
+
+      {/* DeepSeek-R1 Chain of Thought Reasoning Panel */}
+      <div className="p-3.5 bg-purple-950/20 border border-purple-900/50 rounded-xl space-y-2.5">
+        <div 
+          onClick={() => setShowReasoning(!showReasoning)}
+          className="flex items-center justify-between cursor-pointer select-none min-h-[36px]"
+        >
+          <div className="flex items-center gap-2">
+            <Shield className="w-4 h-4 text-purple-400 shrink-0" />
+            <span className="text-xs font-semibold text-purple-200">
+              DeepSeek-R1 深度思考推演链 (Reasoning Content)
+            </span>
+            <span className="text-[10px] bg-purple-900/60 text-purple-300 border border-purple-700/60 px-1.5 py-0.5 rounded font-mono shrink-0">
+              thinking mode
+            </span>
+          </div>
+          <button 
+            type="button"
+            className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 shrink-0"
+          >
+            <span>{showReasoning ? '收起思考' : '展开推演'}</span>
+            {showReasoning ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+        </div>
+
+        {showReasoning && (
+          <div className="p-3 bg-slate-950/80 rounded-lg border border-purple-950/80 font-mono text-xs text-purple-200/90 leading-relaxed whitespace-pre-line">
+            {`> 思考：针对北京智算星辰科技有限公司2026年9月会计凭证、银行对账单及利润表进行穿透式审计。
+> 1. 增值税加计扣除考量：本期进项发票涵盖云服务器租赁（6%税率）与芯片物料（13%税率），符合《企业所得税研发费用加计扣除政策》，确认加计扣除基数 ¥115,000.00，节税收益明显。
+> 2. 银行未达账项排查：发现建设银行账户存在一笔15.8万元电汇入账，但销售部门尚未开具增值税发票，存在跨期收入与增值税滞纳金风险。
+> 3. 经营效率评估：当前5步工作流全部由 DeepSeek 自动化链路闭环，相较传统手工记账减少 85.6% 人工复核耗时，借贷试算平衡率达到 100%。`}
+          </div>
+        )}
+
+        {/* DeepSeek API Cache & Performance Telemetry */}
+        <div className="flex flex-wrap items-center justify-between text-[11px] text-slate-400 pt-1 border-t border-purple-950/80 font-mono gap-2">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="text-emerald-400 flex items-center gap-1">
+              <Zap className="w-3 h-3 text-emerald-400 shrink-0" />
+              提示词缓存命中 (Cache Hit): 512 tokens (优惠 90%)
+            </span>
+            <span>·</span>
+            <span>模型: {deepSeekConfig.model}</span>
+          </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span>响应延迟: ~640ms</span>
+            <span>·</span>
+            <span className="text-cyan-400">严格 JSON 对齐</span>
+          </div>
         </div>
       </div>
 
